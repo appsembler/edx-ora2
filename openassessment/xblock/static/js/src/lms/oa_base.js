@@ -14,9 +14,13 @@ OpenAssessment.BaseView = function(runtime, element, server, data) {
     this.runtime = runtime;
     this.element = element;
     this.server = server;
-    this.fileUploader = new OpenAssessment.FileUploader();
-
-    this.responseView = new OpenAssessment.ResponseView(this.element, this.server, this.fileUploader, this, data);
+    if (data.FILE_UPLOAD_BACKEND == 'transloadit') {
+        this.fileUploader = new OpenAssessment.UppyFileUploader();
+        this.responseView = new OpenAssessment.UppyResponseView(this.element, this.server, this.fileUploader, this, data);
+    } else {
+        this.fileUploader = new OpenAssessment.FileUploader();
+        this.responseView = new OpenAssessment.ResponseView(this.element, this.server, this.fileUploader, this, data);
+    }
     this.trainingView = new OpenAssessment.StudentTrainingView(this.element, this.server, this);
     this.selfView = new OpenAssessment.SelfView(this.element, this.server, this);
     this.peerView = new OpenAssessment.PeerView(this.element, this.server, this);

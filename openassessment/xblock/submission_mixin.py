@@ -1,6 +1,8 @@
 import json
 import logging
 
+from django.conf import settings
+
 from xblock.core import XBlock
 
 from submissions import api
@@ -490,6 +492,7 @@ class SubmissionMixin(object):
         workflow = self.get_workflow_info()
         problem_closed, reason, start_date, due_date = self.is_closed('submission')
         user_preferences = get_user_preferences(self.runtime.service(self, 'user'))
+        backend_setting = getattr(settings, "ORA2_FILEUPLOAD_BACKEND", "s3")
 
         path = 'openassessmentblock/response/oa_response.html'
         context = {
@@ -498,6 +501,7 @@ class SubmissionMixin(object):
             "xblock_id": self.get_xblock_id(),
             "text_response": self.text_response,
             "file_upload_response": self.file_upload_response,
+            "file_upload_backend": backend_setting
         }
 
         # Due dates can default to the distant future, in which case

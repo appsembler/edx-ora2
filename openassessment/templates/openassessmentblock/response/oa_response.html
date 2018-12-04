@@ -13,7 +13,7 @@
             {% endblock %}
                 <span class="step__counter"></span>
                 <span class="wrapper--copy">
-                    <span class="step__label">{% trans "Your Response" %}</span>
+                    <span class="step__label">{% trans "Your Response" %} original</span>
                     {% if submission_start %}
                     <span class="step__deadline">
                         {# Translators: This string displays a date to the user, then tells them the time until that date.  Example: "available August 13th, 2014 (in 5 days and 45 minutes)" #}
@@ -124,6 +124,7 @@
                         </li>
                         {% endif %}
                         {% if file_upload_type %}
+                        {% if file_upload_backend != 'transloadit' %}
                         <li class="field">
                             <div class="upload__error">
                                 <div class="message message--inline message--error message--error-server" tabindex="-1">
@@ -132,10 +133,16 @@
                                 </div>
                             </div>
                             <label class="sr" for="submission_answer_upload_{{ xblock_id }}">{% trans "Select a file to upload for this submission." %}</label>
-                            <input type="file" class="submission__answer__upload file--upload" id="submission_answer_upload_{{ xblock_id }}" multiple="">
+                            <input type="file" class="submission__answer__upload file--upload" id="submission_answer_upload_{{ xblock_id }}[]" multiple="">
                             <button type="submit" class="file__upload action action--upload" disabled>{% trans "Upload files" %}</button>
                             <div class="files__descriptions"></div>
                         </li>
+                        {% else %}
+                        <li class="field">                            
+                            <label class="sr" for="submission_answer_upload_{{ xblock_id }}">{% trans "Select a file to upload for this submission." %}</label>
+                            <button type="button" class="file__upload action action--upload" id="submission_answer_upload_{{ xblock_id }}">{% trans "Upload files" %}</button>
+                        </li>
+                        {% endif %}
                         {% endif %}
                         <li class="field">
                         {% include "openassessmentblock/oa_uploaded_file.html" with file_upload_type=file_upload_type file_urls=file_urls class_prefix="submission__answer" including_template="response" xblock_id=xblock_id %}

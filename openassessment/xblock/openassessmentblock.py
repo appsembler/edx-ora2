@@ -89,6 +89,8 @@ VALID_ASSESSMENT_TYPES = [
     "staff-assessment"
 ]
 
+TRANSLOADIT_UPPY_CSS = "https://transloadit.edgly.net/releases/uppy/v0.28.0/dist/uppy.min.css"
+
 
 def load(path):
     """Handy helper for getting resources from our kit."""
@@ -491,6 +493,7 @@ class OpenAssessmentBlock(MessageMixin,
         Creates a fragment for display.
 
         """
+        fileupload_backend = getattr(settings, "ORA2_FILEUPLOAD_BACKEND", "s3")
         context = Context(context_dict)
         fragment = Fragment(template.render(context))
 
@@ -528,8 +531,13 @@ class OpenAssessmentBlock(MessageMixin,
             "ALLOWED_FILE_MIME_TYPES": self.ALLOWED_FILE_MIME_TYPES,
             "FILE_EXT_BLACK_LIST": self.FILE_EXT_BLACK_LIST,
             "FILE_TYPE_WHITE_LIST": self.white_listed_file_types,
+            "FILE_UPLOAD_BACKEND": fileupload_backend
         }
         fragment.initialize_js(initialize_js_func, js_context_dict)
+
+        if fileupload_backend == 'transloadit':
+            fragment.add_css_url(TRANSLOADIT_UPPY_CSS)
+
         return fragment
 
     @property
