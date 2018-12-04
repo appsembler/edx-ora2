@@ -13,7 +13,8 @@
  OpenAssessment.UppyResponseView
  **/
 
-const TRANSLOADIT_JS =  "https://transloadit.edgly.net/releases/uppy/v0.28.0/dist/uppy.min.js"
+const UPPY_JS_URL =  "https://transloadit.edgly.net/releases/uppy/v0.28.0/dist/uppy.min.js"
+const BUTTON_SELECTOR_PREFIX = "submission_answer_upload_"
 
 OpenAssessment.UppyResponseView = function(element, server, fileUploader, baseView, data) {
     //TODO: figure out how to properly extend OpenAssessment.ResponseView
@@ -39,6 +40,9 @@ OpenAssessment.UppyResponseView = function(element, server, fileUploader, baseVi
 }
 
 OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.ResponseView.prototype, {
+
+    // Maximum size (10 MB) for all attached files.
+    MAX_FILES_SIZE: 10485760,  //set later to 256Mb or from XBlock settings
 
     load: function(usageID) {
         
@@ -67,31 +71,78 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
 
     },
 
+    getAllowedFileTypes: function(usageID) {
+        file_upload_type = $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).data('upload-type');
+        switch (file_upload_type) {
+          case "image":
+            return {
+              "file_types": this.data.ALLOWED_IMAGE_MIME_TYPES,
+              "types_msg": gettext("You can upload files with these file types: ") + "GIF, JPG, PJPG, PNG"
+            }
+            break;
+          case "pdf-and-image":
+            return {
+              "file_types": this.data.ALLOWED_FILE_MIME_TYPES,
+              "types_msg": gettext("You can upload files with these file types: ") + "GIF, JPG, PJPG, PNG, PDF"
+            }
+            break;
+          case "custom":
+            return {
+              "file_types": this.data.FILE_TYPE_WHITE_LIST,
+              "types_msg": gettext("You can upload files with these file types: ") + this.data.FILE_TYPE_WHITE_LIST.join(", ")
+            }
+            break;
+        }
+
+    },
+
     initUppy: function() {
 
-        usageID = this.element.dataset.usageId;
+        var usageID = this.element.dataset.usageId;
+        var allowed_file_types = this.getAllowedFileTypes(usageID);
+        var max_size_friendly = this.MAX_FILES_SIZE/1024/1024 + gettext("MB");
 
         //set up Uppy uploader
-        RequireJS.require([TRANSLOADIT_JS], function() {
-            var uppy = Uppy.Core({
-                id: 'uppy', //this will need to be specific to one block id
+        RequireJS.require([UPPY_JS_URL], function() {
+
+          var checkUploadTotalFileSize = function(currentFile, files) {
+            //there's probably a better way to pass as param to required module
+            var max_files_size = window.OpenAssessment.UppyResponseView.prototype.MAX_FILES_SIZE;
+            var TotalFileSize = 0;
+
+            for (var key in files) {
+              TotalFileSize = TotalFileSize + files[key].size;
+            }
+
+            var grandTotalFileSize = currentFile.data.size + TotalFileSize;
+
+            if (grandTotalFileSize > max_files_size) {
+              uppy.info(gettext('Skipping file because you have exceeded maximum total upload size of')+' '+max_files_size+' '+gettext('bytes'), 'error', 2000);
+              return false;
+            }
+
+            return true;
+          } 
+
+          //Uppy here is defined in global and this is Window
+            uppy = Uppy.Core({
+                id: 'uppy_'+CSS.escape(usageID),
                 autoProceed: false,
                 allowMultipleUploads: false,
-                onBeforeFileAdded: (currentFile, files) => checkUpload(currentFile, files),
+                onBeforeFileAdded: (currentFile, files) => checkUploadTotalFileSize(currentFile, files),
                 debug: true,
                 restrictions: {
-                    //maxFileSize: 8388608, //=8Mb, 256Mb = 268435456,  just care about total upload
-                    maxNumberOfFiles: 30, //set somewhat reasonable number here just to avoid abuse
+                    maxNumberOfFiles: 20,
                     minNumberOfFiles: 1,
-                    allowedFileTypes: ['image/*', '.pdf', 'video/*'] //get these from XBlock settings
+                    allowedFileTypes: allowed_file_types.file_types
                 }
-            });
+            });          
 
             uppy.use(Uppy.Dashboard, { 
                 inline: false,
                 target: 'body',
-                trigger: '#'+CSS.escape('submission_answer_upload_'+usageID),
-                note: "You may upload images (gif, png, jpg), videos, or PDFs. The maximum total file size is 256Mb.",
+                trigger: '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID),
+                note: allowed_file_types.types_msg +". "+gettext("The maximum total file size is ") + max_size_friendly,
                 showProgressDetails: true,
                 showLinkToFileUploadResult: false,
                 closeModalOnClickOutside: false,
@@ -136,9 +187,12 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               mirror: true,
               facingMode: 'user',
               locale: {}
-            })
-        });    
+            });
+                       
+        });
+
     },
+  
 
     /**
      * Check that "submit" button could be enabled (or disabled)
