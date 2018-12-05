@@ -501,7 +501,8 @@ class SubmissionMixin(object):
             "xblock_id": self.get_xblock_id(),
             "text_response": self.text_response,
             "file_upload_response": self.file_upload_response,
-            "file_upload_backend": backend_setting
+            "file_upload_backend": backend_setting,
+            "user_id": self.xmodule_runtime.anonymous_student_id
         }
 
         # Due dates can default to the distant future, in which case

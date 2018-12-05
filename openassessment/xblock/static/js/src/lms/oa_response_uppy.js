@@ -99,6 +99,8 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
     initUppy: function() {
 
         var usageID = this.element.dataset.usageId;
+        var courseID = this.element.dataset.courseId;
+        var userID = $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).data('userId');
         var allowed_file_types = this.getAllowedFileTypes(usageID);
         var max_size_friendly = this.MAX_FILES_SIZE/1024/1024 + gettext("MB");
 
@@ -122,7 +124,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             }
 
             return true;
-          } 
+          }
 
           //Uppy here is defined in global and this is Window
             uppy = Uppy.Core({
@@ -162,9 +164,9 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 },
                 template_id: '1bdbaf10f35211e8b9b94391a2fb87e1',
                 fields: {
-                    user_id: "TransloadItTestUserId",
-                    item_id: "TransloadItTestItemId",
-                    course_id: "course-v1:Appsembler+BryanTest+TransloadItTest" 
+                    user_id: userID,
+                    item_id: usageID,
+                    course_id: courseID
                 }
               },
               waitForEncoding: false,

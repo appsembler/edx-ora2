@@ -140,7 +140,7 @@
                         {% else %}
                         <li class="field">                            
                             <label class="sr" for="submission_answer_upload_{{ xblock_id }}">{% trans "Select a file to upload for this submission." %}</label>
-                            <button type="button" class="file__upload action action--upload" data-upload-type="{{ file_upload_type }}" id="submission_answer_upload_{{ xblock_id }}">{% trans "Upload files" %}</button>
+                            <button type="button" class="file__upload action action--upload" data-upload-type="{{ file_upload_type }}" data-user-id="{{ user_id }}" id="submission_answer_upload_{{ xblock_id }}">{% trans "Upload files" %}</button>
                         </li>
                         {% endif %}
                         {% endif %}
