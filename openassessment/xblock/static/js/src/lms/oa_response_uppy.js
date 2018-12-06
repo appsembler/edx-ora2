@@ -126,12 +126,27 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             return true;
           }
 
-          //Uppy here is defined in global and this is Window
+          // only allow a student to proceed with upload after clicking twice
+          var confirmUpload = function(files) {
+            debugger
+            if (uppy.getState().uploadProceed === true) {
+              uppy.setState({uploadProceed: false});
+              return true;
+            }
+            else {
+              uppy.info(gettext("This will remove all previously uploaded files. Press upload again to continue."), 'warning', 5000 );
+              uppy.setState({uploadProceed: true});
+              return false;
+            }            
+          }
+
+          //Uppy here is global and this is Window
             uppy = Uppy.Core({
                 id: 'uppy_'+CSS.escape(usageID),
                 autoProceed: false,
                 allowMultipleUploads: false,
                 onBeforeFileAdded: (currentFile, files) => checkUploadTotalFileSize(currentFile, files),
+                onBeforeUpload:(files) => confirmUpload(files),
                 debug: true,
                 restrictions: {
                     maxNumberOfFiles: 20,
@@ -144,9 +159,9 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 inline: false,
                 target: 'body',
                 trigger: '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID),
-                note: allowed_file_types.types_msg +". "+gettext("The maximum total file size is ") + max_size_friendly,
+                note: allowed_file_types.types_msg +". "+gettext("The maximum total file size is ") + max_size_friendly + ". " + gettext("Uploading new files will delete previously uploaded files."),
                 showProgressDetails: true,
-                showLinkToFileUploadResult: false,
+                showLinkToFileUploadResult: true,
                 closeModalOnClickOutside: false,
                 closeAfterFinish: false,
                 allowMultipleUploads: false,
