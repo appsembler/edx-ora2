@@ -98,18 +98,25 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
 
     initUppy: function() {
 
-        var usageID = this.element.dataset.usageId;
-        var courseID = this.element.dataset.courseId;
+        var el = this.element;
+        var usageID = el.dataset.usageId;
+        var courseID = el.dataset.courseId;
         var userID = $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).data('userId');
         var allowed_file_types = this.getAllowedFileTypes(usageID);
         var max_size_friendly = this.MAX_FILES_SIZE/1024/1024 + gettext("MB");
+        var view = this;
 
         //set up Uppy uploader
         RequireJS.require([UPPY_JS_URL], function() {
 
           var checkUploadTotalFileSize = function(currentFile, files) {
+
+            //reset confirmation
+            uppy.opts.onBeforeUpload = (files) => confirmUpload(files);
+
             //there's probably a better way to pass as param to required module
-            var max_files_size = window.OpenAssessment.UppyResponseView.prototype.MAX_FILES_SIZE;
+            console.log('we got view?' + view);
+            var max_files_size = view.MAX_FILES_SIZE;
             var TotalFileSize = 0;
 
             for (var key in files) {
@@ -127,17 +134,52 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
           }
 
           // only allow a student to proceed with upload after clicking twice
+          // and after the previously uploaded files have been removed
           var confirmUpload = function(files) {
-            debugger
             if (uppy.getState().uploadProceed === true) {
               uppy.setState({uploadProceed: false});
-              return true;
+              removeUploadedFiles(files).then(
+                function() {
+                  // rename all the files to have sequential numeric filenames
+                  const updatedFiles = Object.assign({}, files);
+                  for (let [i, fileId] of Object.keys(updatedFiles).entries()) {
+                    updatedFiles[fileId].name = i;
+                  };
+                  uppy.opts.onBeforeUpload = function(){return true}; //this is wonky but we have to remove the handler temporarily
+                  uppy.upload(updatedFiles);
+                }, 
+                function() {
+                  uppy.info(gettext("Could not delete previously uploaded files.  Press upload again to continue."), 'warning', 5000);
+                  return false;
+                }
+              );
+              return false; // once we've removed previous uploads we call upload()
             }
             else {
               uppy.info(gettext("This will remove all previously uploaded files. Press upload again to continue."), 'warning', 5000 );
               uppy.setState({uploadProceed: true});
               return false;
             }            
+          }
+
+          /**
+           * Sends request to server to remove all previously uploaded files.
+          */
+          var removeUploadedFiles = function(files) { //normally lives in oa_server.js
+              var url = view.server.runtime.handlerUrl(view.element, 'remove_all_uploaded_files');
+              return $.Deferred(function(defer) {
+                  $.ajax({
+                      type: "POST",
+                      url: url,
+                      data: JSON.stringify({}),
+                      contentType: jsonContentType
+                  }).done(function(data) {
+                      if (data.success) { defer.resolve(); }
+                      else { defer.rejectWith(view, [data.msg]); }
+                  }).fail(function() {
+                      defer.rejectWith(view, [gettext('Server error.')]);
+                  });
+              }).promise();
           }
 
           //Uppy here is global and this is Window
@@ -149,7 +191,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 onBeforeUpload:(files) => confirmUpload(files),
                 debug: true,
                 restrictions: {
-                    maxNumberOfFiles: 20,
+                    maxNumberOfFiles: 20, //this needs to match submission_mixin.MAX_FILES_COUNT
                     minNumberOfFiles: 1,
                     allowedFileTypes: allowed_file_types.file_types
                 }
