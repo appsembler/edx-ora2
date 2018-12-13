@@ -19,6 +19,8 @@ from xblock.core import XBlock
 from xblock.fields import List, Scope, String, Boolean, Integer
 from xblock.fragment import Fragment
 
+from openassessment.fileupload import backends
+
 from openassessment.xblock.grade_mixin import GradeMixin
 from openassessment.xblock.leaderboard_mixin import LeaderboardMixin
 from openassessment.xblock.defaults import *  # pylint: disable=wildcard-import, unused-wildcard-import
@@ -531,7 +533,8 @@ class OpenAssessmentBlock(MessageMixin,
             "ALLOWED_FILE_MIME_TYPES": self.ALLOWED_FILE_MIME_TYPES,
             "FILE_EXT_BLACK_LIST": self.FILE_EXT_BLACK_LIST,
             "FILE_TYPE_WHITE_LIST": self.white_listed_file_types,
-            "FILE_UPLOAD_BACKEND": fileupload_backend
+            "FILE_UPLOAD_BACKEND": fileupload_backend,
+            "FILE_UPLOAD_PREFIX": backends.base.Settings.get_prefix()
         }
         fragment.initialize_js(initialize_js_func, js_context_dict)
 

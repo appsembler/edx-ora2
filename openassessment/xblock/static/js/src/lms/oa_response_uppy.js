@@ -114,8 +114,6 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             //reset confirmation
             uppy.opts.onBeforeUpload = (files) => confirmUpload(files);
 
-            //there's probably a better way to pass as param to required module
-            console.log('we got view?' + view);
             var max_files_size = view.MAX_FILES_SIZE;
             var TotalFileSize = 0;
 
@@ -140,11 +138,17 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               uppy.setState({uploadProceed: false});
               removeUploadedFiles(files).then(
                 function() {
-                  // rename all the files to have sequential numeric filenames
-                  const updatedFiles = Object.assign({}, files);
-                  for (let [i, fileId] of Object.keys(updatedFiles).entries()) {
-                    updatedFiles[fileId].name = i;
-                  };
+                  // rename multiple files to have sequential numeric filenames
+                  // but single file to have only the usage ID as file name
+                  // this is due to how the s3 backend is designed
+                  const updatedFiles = Object.assign({}, files);                  
+                  const aryUpdated = Object.keys(updatedFiles);
+                  if (aryUpdated.length == 1) updatedFiles[aryUpdated[0]].name = usageID; //single stored item
+                  else {
+                    for (let [i, fileId] of aryUpdated.entries()) { //folder of stored items...
+                      updatedFiles[fileId].name = i+1; //... as 1, 2, ...
+                    };
+                  }
                   uppy.opts.onBeforeUpload = function(){return true}; //this is wonky but we have to remove the handler temporarily
                   uppy.upload(updatedFiles);
                 }, 
@@ -156,7 +160,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               return false; // once we've removed previous uploads we call upload()
             }
             else {
-              uppy.info(gettext("This will remove all previously uploaded files. Press upload again to continue."), 'warning', 5000 );
+              uppy.info(gettext("This will remove any previously uploaded files for this assessment. Press upload again to continue."), 'warning', 5000 );
               uppy.setState({uploadProceed: true});
               return false;
             }            
@@ -218,12 +222,13 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                   // To avoid tampering use signatures:
                   // https://transloadit.com/docs/api/#authentication
                   key: '792eb390ec5111e8becf951567442607'
-                },
+                },                
                 template_id: '1bdbaf10f35211e8b9b94391a2fb87e1',
                 fields: {
+                    s3_prefix: view.data.FILE_UPLOAD_PREFIX,
                     user_id: userID,
-                    item_id: usageID,
-                    course_id: courseID
+                    course_id: courseID,
+                    usage_id: usageID
                 }
               },
               waitForEncoding: false,
