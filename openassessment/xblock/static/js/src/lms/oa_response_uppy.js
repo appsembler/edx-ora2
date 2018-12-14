@@ -134,6 +134,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
           // only allow a student to proceed with upload after clicking twice
           // and after the previously uploaded files have been removed
           var confirmUpload = function(files) {
+
             if (uppy.getState().uploadProceed === true) {
               uppy.setState({uploadProceed: false});
               removeUploadedFiles(files).then(
@@ -150,6 +151,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                     };
                   }
                   uppy.opts.onBeforeUpload = function(){return true}; //this is wonky but we have to remove the handler temporarily
+                                                                      //try to re-do this using a Defer
                   uppy.upload(updatedFiles);
                 }, 
                 function() {
@@ -209,9 +211,12 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 showProgressDetails: true,
                 showLinkToFileUploadResult: true,
                 closeModalOnClickOutside: false,
-                closeAfterFinish: false,
+                closeAfterFinish: true,
                 allowMultipleUploads: false,
-                proudlyDisplayPoweredByUppy: false
+                proudlyDisplayPoweredByUppy: false,
+                metaFields: [
+                  { id: 'description', name: gettext('Description (required)'), placeholder: '' }
+                ]
 
             })
 
@@ -231,10 +236,6 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                     usage_id: usageID
                 }
               },
-              waitForEncoding: false,
-              waitForMetadata: false,
-              importFromUploadURLs: false,
-              alwaysRunAssembly: false,
               signature: null,
             });
 
@@ -252,69 +253,16 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               facingMode: 'user',
               locale: {}
             });
-                       
+
+            uppy.on('upload-success', (file, resp, uploadURL) => {
+              //get the file url though it won't have any text to the link
+              //until a description is entered
+              view.filesDescriptions.push(file.meta.description);
+              debugger
+              view.fileUrl(isNaN(file.name) ? 0 : file.name - 1);
+            });
+
         });
 
-    },
-  
-
-    /**
-     * Check that "submit" button could be enabled (or disabled)
-     *
-     * Args:
-     * filesFiledIsNotBlank (boolean): used to avoid race conditions situations
-     * (if files were successfully uploaded and are not displayed yet but
-     * after upload last file the submit button should be available to push)
-     *
-     */
-    checkSubmissionAbility: function(filesFiledIsNotBlank) {
-        //will need to see that uppy upload was successful
-    },
-
-    /**
-     When selecting a file for upload, do some quick client-side validation
-     to ensure that it is an image, a PDF or other allowed types, and is not
-     larger than the maximum file size.
-
-     Args:
-     files (list): A collection of files used for upload. This function assumes
-     there is only one file being uploaded at any time. This file must
-     be less than 5 MB and an image, PDF or other allowed types.
-     uploadType (string): uploaded file type allowed, could be none, image,
-     file or custom.
-
-     **/
-    prepareUpload: function(files, uploadType, descriptions) {
-        //most of this is now unnecessary but this is where we can 
-        //set parameters for uppy
-
-    },
-
-    /**
-     Manages file uploads for submission attachments.
-
-     **/
-    uploadFiles: function() {
-        //this will need to work differently to remove uploaded files
-        // and save file descriptions
-    },
-
-    /**
-     Retrieves a one-time upload URL from the server, and uses it to upload images
-     to a designated location.
-
-     **/
-    fileUpload: function(view, filetype, filename, filenum, file, finalUpload) {
-        //this will use uppy instead
-    },
-
-    /**
-     Set the file URL, or retrieve it.
-
-     **/
-    fileUrl: function(filenum) {
-       
-
     }
-
 });
