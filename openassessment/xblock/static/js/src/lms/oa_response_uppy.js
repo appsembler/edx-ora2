@@ -111,9 +111,6 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
 
           var checkUploadTotalFileSize = function(currentFile, files) {
 
-            //reset confirmation
-            uppy.opts.onBeforeUpload = (files) => confirmUpload(files);
-
             var max_files_size = view.MAX_FILES_SIZE;
             var TotalFileSize = 0;
 
@@ -131,13 +128,18 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             return true;
           }
 
-          // only allow a student to proceed with upload after clicking twice
-          // and after the previously uploaded files have been removed
+          // confirm all files have descriptions set
           var confirmUpload = function(files) {
-
             if (uppy.getState().uploadProceed === true) {
-              uppy.setState({uploadProceed: false});
-              removeUploadedFiles(files).then(
+              return true;
+            }
+            for (let key in files) {
+              if (files[key].meta.description === undefined) {
+                uppy.info(gettext("You must enter a description for all uploaded files.  Click Edit below the file thumbnail for '")+files[key].name + gettext("' to add a description."), 'warning', 5000 );
+                return false;
+              }
+            }            
+            removeUploadedFiles(files).then(
                 function() {
                   // rename multiple files to have sequential numeric filenames
                   // but single file to have only the usage ID as file name
@@ -150,22 +152,16 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                       updatedFiles[fileId].name = i+1; //... as 1, 2, ...
                     };
                   }
-                  uppy.opts.onBeforeUpload = function(){return true}; //this is wonky but we have to remove the handler temporarily
-                                                                      //try to re-do this using a Defer
+                  uppy.setState({uploadProceed: true});
                   uppy.upload(updatedFiles);
-                }, 
+                },
                 function() {
-                  uppy.info(gettext("Could not delete previously uploaded files.  Press upload again to continue."), 'warning', 5000);
+                  uppy.info(gettext("Could not delete previously uploaded files.  Press upload again to try again."), 'warning', 5000);
                   return false;
                 }
-              );
-              return false; // once we've removed previous uploads we call upload()
-            }
-            else {
-              uppy.info(gettext("This will remove any previously uploaded files for this assessment. Press upload again to continue."), 'warning', 5000 );
-              uppy.setState({uploadProceed: true});
-              return false;
-            }            
+            );
+
+            return false; // once we've removed previous uploaded files we call upload()
           }
 
           /**
@@ -207,7 +203,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 inline: false,
                 target: 'body',
                 trigger: '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID),
-                note: allowed_file_types.types_msg +". "+gettext("The maximum total file size is ") + max_size_friendly + ". " + gettext("Uploading new files will delete previously uploaded files."),
+                note: allowed_file_types.types_msg +". "+gettext("The maximum total file size is ") + max_size_friendly + ". ",
                 showProgressDetails: true,
                 showLinkToFileUploadResult: true,
                 closeModalOnClickOutside: false,
@@ -257,9 +253,9 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             uppy.on('upload-success', (file, resp, uploadURL) => {
               //get the file url though it won't have any text to the link
               //until a description is entered
-              view.filesDescriptions.push(file.meta.description);
-              debugger
-              view.fileUrl(isNaN(file.name) ? 0 : file.name - 1);
+              var index = isNaN(file.name) ? 0 : file.name; 
+              view.filesDescriptions[index] = file.meta.description;
+              view.fileUrl(index);
             });
 
         });
