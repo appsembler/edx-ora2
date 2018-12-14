@@ -109,8 +109,13 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
         //set up Uppy uploader
         RequireJS.require([UPPY_JS_URL], function() {
 
-          var checkUploadTotalFileSize = function(currentFile, files) {
 
+          var prepareFileForUpload = function(currentFile, files) {
+            uppy.setState({uploadProceed: false});
+            return checkUploadTotalFileSize(currentFile, files);
+          }
+
+          var checkUploadTotalFileSize = function(currentFile, files) {            
             var max_files_size = view.MAX_FILES_SIZE;
             var TotalFileSize = 0;
 
@@ -257,6 +262,11 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               view.filesDescriptions[index] = file.meta.description;
               view.fileUrl(index);
             });
+
+            uppy.on('complete', (result) => {
+              var trigger = '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID);
+              $(trigger).attr('disabled', 'disabled');
+            })
 
         });
 
