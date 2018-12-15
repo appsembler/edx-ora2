@@ -96,6 +96,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
 
     },
 
+
     initUppy: function() {
 
         var el = this.element;
@@ -105,6 +106,9 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
         var allowed_file_types = this.getAllowedFileTypes(usageID);
         var max_size_friendly = this.MAX_FILES_SIZE/1024/1024 + gettext("MB");
         var view = this;
+
+        // remove default handler for upload files button
+        $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).unbind('click');  
 
         //set up Uppy uploader
         RequireJS.require([UPPY_JS_URL], function() {
@@ -194,7 +198,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 id: 'uppy_'+CSS.escape(usageID),
                 autoProceed: false,
                 allowMultipleUploads: false,
-                onBeforeFileAdded: (currentFile, files) => checkUploadTotalFileSize(currentFile, files),
+                onBeforeFileAdded: (currentFile, files) => prepareFileForUpload(currentFile, files),
                 onBeforeUpload:(files) => confirmUpload(files),
                 debug: true,
                 restrictions: {
@@ -207,7 +211,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             uppy.use(Uppy.Dashboard, { 
                 inline: false,
                 target: 'body',
-                trigger: '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID),
+                // trigger: '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID),
                 note: allowed_file_types.types_msg +". "+gettext("The maximum total file size is ") + max_size_friendly + ". ",
                 showProgressDetails: true,
                 showLinkToFileUploadResult: true,
@@ -219,7 +223,20 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                   { id: 'description', name: gettext('Description (required)'), placeholder: '' }
                 ]
 
-            })
+            });
+
+            // manually bind Dashboard to click 
+            $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).bind('click', function(event) {
+              event.preventDefault();
+              var sel = $('.step--response', view.element);
+              var previouslyUploadedFiles = sel.find('.submission__answer__file').length ? true : false;
+              var msg = gettext('After you upload new files all your previously uploaded files will be overwritten. Continue?');  // jscs:ignore maximumLineLength
+              if (confirm(msg)) {
+                uppy.getPlugin('Dashboard').openModal();
+              } else {                
+                $(event.target).prop('disabled', true);
+              }
+            });
 
             uppy.use(Uppy.Transloadit, {
               target: Uppy.Dashboard,
@@ -256,16 +273,25 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             });
 
             uppy.on('upload-success', (file, resp, uploadURL) => {
-              //get the file url though it won't have any text to the link
-              //until a description is entered
               var index = isNaN(file.name) ? 0 : file.name; 
               view.filesDescriptions[index] = file.meta.description;
               view.fileUrl(index);
+
+              // Log an analytics event
+              Logger.log(
+                  "openassessment.upload_file",
+                  {
+                      fileName: file.name,
+                      fileSize: file.size,
+                      fileType: file.type
+                  }
+              );
             });
 
             uppy.on('complete', (result) => {
               var trigger = '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID);
               $(trigger).attr('disabled', 'disabled');
+              view.saveFilesDescriptions();
             })
 
         });
