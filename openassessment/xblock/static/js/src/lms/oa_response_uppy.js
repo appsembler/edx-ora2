@@ -73,6 +73,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
 
     getAllowedFileTypes: function(usageID) {
         file_upload_type = $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).data('upload-type');
+        if (file_upload_type === undefined) return null;
         switch (file_upload_type) {
           case "image":
             return {
@@ -103,9 +104,10 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
         var usageID = el.dataset.usageId;
         var courseID = el.dataset.courseId;
         var userID = $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).data('userId');
-        var allowed_file_types = this.getAllowedFileTypes(usageID);
         var max_size_friendly = this.MAX_FILES_SIZE/1024/1024 + gettext("MB");
         var view = this;
+        var allowed_file_types = this.getAllowedFileTypes(usageID);        
+        if (!allowed_file_types) return false; // can't upload or already submitted, don't load Uppy
 
         // remove default handler for upload files button
         $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).unbind('click');  
