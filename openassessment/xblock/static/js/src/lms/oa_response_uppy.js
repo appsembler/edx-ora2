@@ -143,24 +143,27 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               return true;
             }
             for (let key in files) {
-              if (files[key].meta.description === undefined) {
+              if (files[key].meta.description === undefined || files[key].meta.description == '' ) {
                 uppy.info(gettext("You must enter a description for all uploaded files.  Click Edit below the file thumbnail for '")+files[key].name + gettext("' to add a description."), 'warning', 5000 );
                 return false;
               }
-            }            
+            }
+            uppy.info("Deleting any previously uploaded files.", "info", 2500);            
             removeUploadedFiles(files).then(
                 function() {
                   // rename multiple files to have sequential numeric filenames
                   // but single file to have only the usage ID as file name
                   // this is due to how the s3 backend is designed
                   const updatedFiles = Object.assign({}, files);                  
-                  const aryUpdated = Object.keys(updatedFiles);
-                  if (aryUpdated.length == 1) updatedFiles[aryUpdated[0]].name = usageID; //single stored item
-                  else {
-                    for (let [i, fileId] of aryUpdated.entries()) { //folder of stored items...
-                      updatedFiles[fileId].name = i+1; //... as 1, 2, ...
-                    };
-                  }
+                  const aryUpdated = Object.keys(updatedFiles);                  
+                  for (let [i, fileId] of aryUpdated.entries()) { //folder of stored items...
+                    if (i==0) {
+                      updatedFiles[fileId].name = usageID; // stored as single item with usage id name
+                    }
+                    else {
+                      updatedFiles[fileId].name = i; // stored as 1, 2... inside directory w/ usage id name
+                    }
+                  };
                   uppy.setState({uploadProceed: true});
                   uppy.upload(updatedFiles);
                 },
@@ -228,13 +231,18 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             // manually bind Dashboard to click 
             $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).bind('click', function(event) {
               event.preventDefault();
+              $('.submission__answer__display__file', view.element).removeClass('is--hidden');
               var sel = $('.step--response', view.element);
               var previouslyUploadedFiles = sel.find('.submission__answer__file').length ? true : false;
-              var msg = gettext('After you upload new files all your previously uploaded files will be overwritten. Continue?');  // jscs:ignore maximumLineLength
-              if (confirm(msg)) {
+              if (previouslyUploadedFiles) {
+                var msg = gettext('After you upload new files all your previously uploaded files will be overwritten. Continue?');  // jscs:ignore maximumLineLength
+                if (confirm(msg)) {
+                  uppy.getPlugin('Dashboard').openModal();
+                } else {                
+                  $(event.target).prop('disabled', true);
+                }
+              } else {
                 uppy.getPlugin('Dashboard').openModal();
-              } else {                
-                $(event.target).prop('disabled', true);
               }
             });
 
@@ -290,8 +298,8 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
 
             uppy.on('complete', (result) => {
               var trigger = '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID);
-              $(trigger).attr('disabled', 'disabled');
-              view.saveFilesDescriptions();
+              $(trigger).attr('disabled', 'disabled'); //only allowing one upload
+              view.saveFilesDescriptions(view.filesDescriptions);
             })
 
         });
