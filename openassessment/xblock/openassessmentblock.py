@@ -495,7 +495,7 @@ class OpenAssessmentBlock(MessageMixin,
         Creates a fragment for display.
 
         """
-        fileupload_backend = getattr(settings, "ORA2_FILEUPLOAD_BACKEND", "s3")
+        fileupload_backend_name = getattr(settings, "ORA2_FILEUPLOAD_BACKEND", settings.ENV_TOKENS.get("ORA2_FILEUPLOAD_BACKEND", "s3"))
         context = Context(context_dict)
         fragment = Fragment(template.render(context))
 
@@ -528,17 +528,19 @@ class OpenAssessmentBlock(MessageMixin,
 
             # minified additional_js should be already included in 'make javascript'
             fragment.add_javascript(load("static/js/openassessment-lms.min.js"))
+            if fileupload_backend_name == 'transloadit':
+                self.add_javascript_files(fragment, "static/js/lms/oa_response_uppy.js")
         js_context_dict = {
             "ALLOWED_IMAGE_MIME_TYPES": self.ALLOWED_IMAGE_MIME_TYPES,
             "ALLOWED_FILE_MIME_TYPES": self.ALLOWED_FILE_MIME_TYPES,
             "FILE_EXT_BLACK_LIST": self.FILE_EXT_BLACK_LIST,
             "FILE_TYPE_WHITE_LIST": self.white_listed_file_types,
-            "FILE_UPLOAD_BACKEND": fileupload_backend,
+            "FILE_UPLOAD_BACKEND": fileupload_backend_name,
             "FILE_UPLOAD_PREFIX": backends.base.Settings.get_prefix()
         }
         fragment.initialize_js(initialize_js_func, js_context_dict)
 
-        if fileupload_backend == 'transloadit':
+        if fileupload_backend_name == 'transloadit':
             fragment.add_css_url(TRANSLOADIT_UPPY_CSS)
 
         return fragment
