@@ -146,11 +146,14 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             }
             for (let key in files) {
               if (files[key].meta.description === undefined || files[key].meta.description == '' ) {
-                uppy.info(gettext("You must enter a description for all uploaded files.  Click Edit below the file thumbnail for '")+files[key].name + gettext("' to add a description."), 'warning', 5000 );
+                uppy.info(gettext("You must enter a description for all uploaded files.  Click 'Enter File Description' below the file thumbnail for ")+files[key].name, 'warning', 5000 );
                 return false;
               }
             }
-            uppy.info("Deleting any previously uploaded files.", "info", 2500);            
+            if (view.filesDescriptions) {
+              uppy.info("First deleting any previously uploaded files.", "info", 2500);
+            }
+
             removeUploadedFiles(files).then(
                 function() {
                   // rename multiple files to have sequential numeric filenames
@@ -226,7 +229,15 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 proudlyDisplayPoweredByUppy: false,
                 metaFields: [
                   { id: 'description', name: gettext('Description (required)'), placeholder: '' }
-                ]
+                ],
+                locale: {
+                  strings: {
+                     closeModal: 'Close Uploader',
+                     dashboardWindowTitle: 'Uploader (Press escape to close)',
+                     edit: 'Enter file description (required)',
+                     editFile: 'Enter file description (required)'
+                  }
+                }
 
             });
 
