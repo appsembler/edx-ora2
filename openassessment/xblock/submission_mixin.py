@@ -492,7 +492,7 @@ class SubmissionMixin(object):
         workflow = self.get_workflow_info()
         problem_closed, reason, start_date, due_date = self.is_closed('submission')
         user_preferences = get_user_preferences(self.runtime.service(self, 'user'))
-        backend_setting = getattr(settings, "ORA2_FILEUPLOAD_BACKEND", "s3")
+        backend_setting = getattr(settings, "ORA2_FILEUPLOAD_BACKEND", settings.ENV_TOKENS.get("ORA2_FILEUPLOAD_BACKEND", "s3"))
 
         path = 'openassessmentblock/response/oa_response.html'
         context = {
