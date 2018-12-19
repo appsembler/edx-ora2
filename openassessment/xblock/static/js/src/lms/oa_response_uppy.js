@@ -41,8 +41,7 @@ OpenAssessment.UppyResponseView = function(element, server, fileUploader, baseVi
 
 OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.ResponseView.prototype, {
 
-    // Maximum size (10 MB) for all attached files.
-    MAX_FILES_SIZE: 10485760,  //set later to 256Mb or from XBlock settings
+    MAX_FILES_SIZE: 268435456,  //256Mb
 
     load: function(usageID) {
         
