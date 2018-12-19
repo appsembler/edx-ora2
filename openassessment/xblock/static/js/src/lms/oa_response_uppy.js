@@ -106,7 +106,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
         var userID = $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).data('userId');
         var max_size_friendly = this.MAX_FILES_SIZE/1024/1024 + gettext("MB");
         var view = this;
-        var allowed_file_types = this.getAllowedFileTypes(usageID);        
+        var allowed_file_types = this.getAllowedFileTypes(usageID);
         if (!allowed_file_types) return false; // can't upload or already submitted, don't load Uppy
 
         // remove default handler for upload files button

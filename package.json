@@ -26,7 +26,8 @@
     "karma-spec-reporter": "^0.0.20",
     "phantomjs": "^1.9.11",
     "sinon": "^1.10.3",
-    "uglify-js": "^2.6.3"
+    "uglify-js": "^2.6.3",
+    "uglify-es": "3.3.9"
   },
   "scripts": {
     "test": "./node_modules/karma/bin/karma start --reporters spec,coverage"
