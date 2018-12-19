@@ -88,7 +88,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             break;
           case "custom":
             return {
-              "file_types": this.data.FILE_TYPE_WHITE_LIST,
+              "file_types": this.data.FILE_TYPE_WHITE_LIST.map(function(el) {return '.'+el}), //Studio removes dot prefixes
               "types_msg": gettext("You can upload files with these file types: ") + this.data.FILE_TYPE_WHITE_LIST.join(", ")
             }
             break;
@@ -209,13 +209,13 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 allowMultipleUploads: false,
                 onBeforeFileAdded: (currentFile, files) => prepareFileForUpload(currentFile, files),
                 onBeforeUpload:(files) => confirmUpload(files),
-                debug: true,
+                debug: false,
                 restrictions: {
                     maxNumberOfFiles: 20, //this needs to match submission_mixin.MAX_FILES_COUNT
                     minNumberOfFiles: 1,
                     allowedFileTypes: allowed_file_types.file_types
                 }
-            });          
+            });
 
             uppy.use(Uppy.Dashboard, { 
                 inline: false,
