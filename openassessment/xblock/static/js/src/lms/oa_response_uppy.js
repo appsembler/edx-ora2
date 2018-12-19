@@ -144,7 +144,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             if (uppy.getState().uploadProceed === true) {
               return true;
             }
-            for (let key in files) {
+            for (var key in files) {
               if (files[key].meta.description === undefined || files[key].meta.description == '' ) {
                 uppy.info(gettext("You must enter a description for all uploaded files.  Click 'Enter File Description' below the file thumbnail for ")+files[key].name, 'warning', 5000 );
                 return false;
@@ -160,14 +160,16 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                   // but single file to have only the usage ID as file name
                   // this is due to how the s3 backend is designed
                   const updatedFiles = Object.assign({}, files);                  
-                  const aryUpdated = Object.keys(updatedFiles);                  
-                  for (let [i, fileId] of aryUpdated.entries()) { //folder of stored items...
+                  const aryUpdated = Object.keys(updatedFiles);
+                  var i = 0;
+                  for (var k in aryUpdated) { //folder of stored items...
                     if (i==0) {
-                      updatedFiles[fileId].name = usageID; // stored as single item with usage id name
+                      updatedFiles[aryUpdated[k]].name = usageID; // stored as single item with usage id name
                     }
                     else {
-                      updatedFiles[fileId].name = i; // stored as 1, 2... inside directory w/ usage id name
+                      updatedFiles[aryUpdated[k]].name = i; // stored as 1, 2... inside directory w/ usage id name
                     }
+                    i++;
                   };
                   uppy.setState({uploadProceed: true});
                   uppy.upload(updatedFiles);
