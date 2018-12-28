@@ -314,6 +314,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               var trigger = '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID);
               $(trigger).attr('disabled', 'disabled'); //only allowing one upload
               view.saveFilesDescriptions(view.filesDescriptions);
+              view.checkSubmissionAbility(true);
             })
 
         });
