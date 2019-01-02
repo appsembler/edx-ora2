@@ -268,7 +268,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                   // https://transloadit.com/docs/api/#authentication
                   key: '792eb390ec5111e8becf951567442607'
                 },                
-                template_id: '1bdbaf10f35211e8b9b94391a2fb87e1',
+                template_id: view.data.TRANSLOADIT_TEMPLATE_ID,
                 fields: {
                     s3_prefix: view.data.FILE_UPLOAD_PREFIX,
                     user_id: userID,

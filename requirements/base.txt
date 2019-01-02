@@ -4,6 +4,7 @@
 
 # edX Internal Requirements
 git+https://github.com/edx/XBlock.git@xblock-0.4.12#egg=XBlock==0.4.12
+git+https://github.com/edx/XBlock.git@xblock-1.1.1#egg=XBlock==1.1.1
 
 # edx-submissions
 git+https://github.com/edx/edx-submissions.git@2.0.1#egg=edx-submissions==2.0.1

@@ -18,6 +18,7 @@ from lazy import lazy
 from xblock.core import XBlock
 from xblock.fields import List, Scope, String, Boolean, Integer
 from xblock.fragment import Fragment
+from xblockutils.settings import XBlockWithSettingsMixin
 
 from openassessment.fileupload import backends
 
@@ -102,6 +103,7 @@ def load(path):
 
 @XBlock.needs("i18n")
 @XBlock.needs("user")
+@XBlock.wants("settings")
 class OpenAssessmentBlock(MessageMixin,
                           SubmissionMixin,
                           PeerAssessmentMixin,
@@ -115,6 +117,7 @@ class OpenAssessmentBlock(MessageMixin,
                           StudentTrainingMixin,
                           LmsCompatibilityMixin,
                           CourseItemsListingMixin,
+                          XBlockWithSettingsMixin,
                           XBlock):
     """Displays a prompt and provides an area where students can compose a response."""
 
@@ -323,6 +326,10 @@ class OpenAssessmentBlock(MessageMixin,
         """
         self.white_listed_file_types = [file_type.strip().strip('.').lower()
                                         for file_type in value.split(',')] if value else None
+
+    @property
+    def settings(self):
+        return self.get_xblock_settings()
 
     def get_anonymous_user_id(self, username, course_id):
         """
@@ -537,6 +544,10 @@ class OpenAssessmentBlock(MessageMixin,
             "FILE_UPLOAD_BACKEND": fileupload_backend_name,
             "FILE_UPLOAD_PREFIX": backends.base.Settings.get_prefix()
         }
+
+        if fileupload_backend_name == 'transloadit':
+            js_context_dict['TRANSLOADIT_TEMPLATE_ID'] = self.settings.get('TRANSLOADIT_TEMPLATE_ID')
+
         fragment.initialize_js(initialize_js_func, js_context_dict)
 
         if fileupload_backend_name == 'transloadit':
