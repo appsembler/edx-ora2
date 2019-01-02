@@ -203,7 +203,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
           }
 
           //Uppy here is global and this is Window
-            uppy = Uppy.Core({
+            var uppy = Uppy.Core({
                 id: 'uppy_'+CSS.escape(usageID),
                 autoProceed: false,
                 allowMultipleUploads: false,
