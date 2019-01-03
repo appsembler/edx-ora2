@@ -13,6 +13,8 @@
  OpenAssessment.UppyResponseView
  **/
 
+const UPPY_POLYFILL_ES6PROMISE = "https://cdn.jsdelivr.net/npm/es6-promise@4.2.5/dist/es6-promise.auto.min.js"
+const UPPY_POLYFILL_FETCH = "https://cdn.jsdelivr.net/npm/whatwg-fetch@3.0.0/dist/fetch.umd.min.js"
 const UPPY_JS_URL =  "https://transloadit.edgly.net/releases/uppy/v0.28.0/dist/uppy.min.js"
 const BUTTON_SELECTOR_PREFIX = "submission_answer_upload_"
 
@@ -112,7 +114,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
         $('#'+CSS.escape(BUTTON_SELECTOR_PREFIX+usageID)).unbind('click');  
 
         //set up Uppy uploader
-        RequireJS.require([UPPY_JS_URL], function() {
+        RequireJS.require([UPPY_POLYFILL_ES6PROMISE, UPPY_POLYFILL_FETCH, UPPY_JS_URL], function() {
 
 
           var prepareFileForUpload = function(currentFile, files) {
@@ -158,8 +160,8 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                   // rename multiple files to have sequential numeric filenames
                   // but single file to have only the usage ID as file name
                   // this is due to how the s3 backend is designed
-                  const updatedFiles = Object.assign({}, files);                  
-                  const aryUpdated = Object.keys(updatedFiles);
+                  const updatedFiles = $.extend({},files);
+                  const aryUpdated = $.map(updatedFiles, function(element,index) {return index});
                   var i = 0;
                   for (var k in aryUpdated) { //folder of stored items...
                     if (i==0) {
@@ -205,10 +207,15 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
           //Uppy here is global and this is Window
             var uppy = Uppy.Core({
                 id: 'uppy_'+CSS.escape(usageID),
+                id: 'uppy_' + CSS.escape(usageID),
                 autoProceed: false,
                 allowMultipleUploads: false,
-                onBeforeFileAdded: (currentFile, files) => prepareFileForUpload(currentFile, files),
-                onBeforeUpload:(files) => confirmUpload(files),
+                onBeforeFileAdded: function onBeforeFileAdded(currentFile, files) {
+                    return prepareFileForUpload(currentFile, files);
+                },
+                onBeforeUpload: function onBeforeUpload(files) {
+                    return confirmUpload(files);
+                },
                 debug: false,
                 restrictions: {
                     maxNumberOfFiles: 20, //this needs to match submission_mixin.MAX_FILES_COUNT
@@ -281,7 +288,9 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
 
             uppy.use(Uppy.Webcam, {
               target: Uppy.Dashboard,
-              onBeforeSnapshot: () => Promise.resolve(),
+              onBeforeSnapshot: function onBeforeSnapshot() {
+                return Promise.resolve();
+              },
               countdown: false,
               modes: [
                 'video-audio',
@@ -294,7 +303,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               locale: {}
             });
 
-            uppy.on('upload-success', (file, resp, uploadURL) => {
+            uppy.on('upload-success', function (file, resp, uploadURL) {
               var index = isNaN(file.name) ? 0 : file.name; 
               view.filesDescriptions[index] = file.meta.description;
               view.fileUrl(index);
@@ -310,7 +319,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               );
             });
 
-            uppy.on('complete', (result) => {
+            uppy.on('complete', function (result) {
               var trigger = '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID);
               $(trigger).attr('disabled', 'disabled'); //only allowing one upload
               view.saveFilesDescriptions(view.filesDescriptions);
