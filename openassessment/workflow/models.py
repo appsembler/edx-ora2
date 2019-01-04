@@ -439,7 +439,7 @@ class AssessmentWorkflow(TimeStampedModel, StatusModel):
             sub_dict['student_item']['student_id'],
             self.course_id,
             self.item_id,
-            emit_signal=False
+            # emit_signal=False  only introduced in submissons api as of v1.2.0 (ficus.1)
         )
         sub_api.set_score(
             self.submission_uuid,
