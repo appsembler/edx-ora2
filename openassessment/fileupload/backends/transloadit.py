@@ -1,5 +1,11 @@
 import boto
+import copy
+from datetime import datetime, timedelta
+import hashlib
+import hmac
+import json
 import logging
+
 from django.conf import settings
 
 from .base import BaseBackend
@@ -34,6 +40,26 @@ class Backend(S3Backend):
                 u"An internal exception occurred while generating an upload URL."
             )
             raise FileUploadInternalError(ex)
+
+    def get_signed_params(self, key, secret, data):
+        """
+        return a TransloadIt signature value using TransloadIt key, secret, and expiry duration
+        return params as JSON string including new auth expiry used for signature calculation
+        """        
+        # data like {'fields':{}, 'template_id':'', 'auth':{}, ...}
+        data = copy.deepcopy(data or {})
+        expiry = timedelta(seconds=60) + datetime.utcnow()
+        data['auth'] = {
+            'key': key,
+            'expires': expiry.strftime("%Y/%m/%d %H:%M:%S+00:00")
+        }
+        json_data = json.dumps(data)
+        signature = hmac.new(str(secret),
+                        json_data.encode('utf-8'),
+                        hashlib.sha1).hexdigest()
+
+        return {'params': json_data,
+                'signature': signature}
 
 
 def _connect_to_s3():

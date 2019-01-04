@@ -526,7 +526,7 @@ class OpenAssessmentBlock(MessageMixin,
                 self.add_javascript_files(fragment, js)
             self.add_javascript_files(fragment, "static/js/src/oa_shared.js")
             self.add_javascript_files(fragment, "static/js/src/oa_server.js")
-            self.add_javascript_files(fragment, "static/js/src/lms")
+            self.add_javascript_files(fragment, "static/js/src/lms")            
         else:
             # TODO: load CSS and JavaScript as URLs once they can be served by the CDN
             for css in additional_css:

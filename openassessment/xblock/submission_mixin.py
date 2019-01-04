@@ -6,6 +6,7 @@ from django.conf import settings
 from xblock.core import XBlock
 
 from submissions import api
+from openassessment.fileupload import backends
 from openassessment.fileupload import api as file_upload_api
 from openassessment.fileupload.exceptions import FileUploadError
 from openassessment.workflow.errors import AssessmentWorkflowError
@@ -597,3 +598,14 @@ class SubmissionMixin(object):
             path = 'openassessmentblock/response/oa_response_submitted.html'
 
         return path, context
+
+    @XBlock.json_handler
+    def get_transloadit_signed_params(self, data, suffix=''):
+        backend = backends.get_backend()
+        key = self.settings.get('TRANSLOADIT_AUTH_KEY')
+        secret = self.settings.get('TRANSLOADIT_AUTH_SECRET')
+        try:
+            signed_params = backend.get_signed_params(key=key, secret=secret, data=data)
+            return {'success': True, 'params': signed_params}
+        except TypeError:
+            return {'success': False, 'msg': "Server error getting signed TransloadIt params."}

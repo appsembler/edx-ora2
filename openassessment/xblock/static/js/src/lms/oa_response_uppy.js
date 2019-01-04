@@ -16,6 +16,7 @@
 const UPPY_POLYFILL_ES6PROMISE = "https://cdn.jsdelivr.net/npm/es6-promise@4.2.5/dist/es6-promise.auto.min.js"
 const UPPY_POLYFILL_FETCH = "https://cdn.jsdelivr.net/npm/whatwg-fetch@3.0.0/dist/fetch.umd.min.js"
 const UPPY_JS_URL =  "https://transloadit.edgly.net/releases/uppy/v0.28.0/dist/uppy.min.js"
+
 const BUTTON_SELECTOR_PREFIX = "submission_answer_upload_"
 
 OpenAssessment.UppyResponseView = function(element, server, fileUploader, baseView, data) {
@@ -116,7 +117,6 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
         //set up Uppy uploader
         RequireJS.require([UPPY_POLYFILL_ES6PROMISE, UPPY_POLYFILL_FETCH, UPPY_JS_URL], function() {
 
-
           var prepareFileForUpload = function(currentFile, files) {
             uppy.setState({uploadProceed: false});
             return checkUploadTotalFileSize(currentFile, files);
@@ -142,7 +142,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
 
           // confirm all files have descriptions set
           var confirmUpload = function(files) {
-            if (uppy.getState().uploadProceed === true) {
+            if (uppy.getState().uploadProceed === true) {              
               return true;
             }
             for (var key in files) {
@@ -151,38 +151,32 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 return false;
               }
             }
-            if (view.filesDescriptions) {
-              uppy.info("First deleting any previously uploaded files.", "info", 2500);
-            }
-
-            removeUploadedFiles(files).then(
-                function() {
-                  // rename files beyond the first to have sequential numeric filenames
-                  // but single file to have only the usage ID as file name
-                  // this is due to how the s3 backend is designed
-                  // keep the extension for now and strip in TransloadIt assembly
-                  // so that TransloadIt sends proper content-type to s3
-                  const updatedFiles = $.extend({},files);
-                  const aryUpdated = $.map(updatedFiles, function(element,index) {return index});
-                  var i = 0;                  
-                  for (var k in aryUpdated) { //folder of stored items...
-                    var f = aryUpdated[k];
-                    if (i==0) {
-                      updatedFiles[f].name = usageID + "." + updatedFiles[f].extension; // stored as single item with usage id name
-                    }
-                    else {
-                      updatedFiles[f].name = i + "." + updatedFiles[f].extension; // stored as 1, 2... inside directory w/ usage id name
-                    }
-                    i++;
-                  };
-                  uppy.setState({uploadProceed: true});
-                  uppy.upload(updatedFiles);
-                },
-                function() {
-                  uppy.info(gettext("Could not delete previously uploaded files.  Press upload again to try again."), 'warning', 5000);
-                  return false;
-                }
-            );
+            getSignedParams()
+            .then(removeUploadedFiles(files))
+            .then(
+              function() {
+                // rename files beyond the first to have sequential numeric filenames
+                // but single file to have only the usage ID as file name
+                // this is due to how the s3 backend is designed
+                // keep the extension for now and strip in TransloadIt assembly
+                // so that TransloadIt sends proper content-type to s3
+                const updatedFiles = $.extend({},files);
+                const aryUpdated = $.map(updatedFiles, function(element,index) {return index});
+                var i = 0;                  
+                for (var k in aryUpdated) { //folder of stored items...
+                  var f = aryUpdated[k];
+                  if (i==0) {
+                    updatedFiles[f].name = usageID + "." + updatedFiles[f].extension; // stored as single item with usage id name
+                  }
+                  else {
+                    updatedFiles[f].name = i + "." + updatedFiles[f].extension; // stored as 1, 2... inside directory w/ usage id name
+                  }
+                  i++;
+                };
+                uppy.setState({uploadProceed: true});
+                uppy.upload(updatedFiles);
+              }
+            );           
 
             return false; // once we've removed previous uploaded files we call upload()
           }
@@ -191,6 +185,9 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
            * Sends request to server to remove all previously uploaded files.
           */
           var removeUploadedFiles = function(files) { //normally lives in oa_server.js
+              if (view.filesDescriptions) {
+                uppy.info("First deleting any previously uploaded files.", "info", 2500);
+              }
               var url = view.server.runtime.handlerUrl(view.element, 'remove_all_uploaded_files');
               return $.Deferred(function(defer) {
                   $.ajax({
@@ -200,16 +197,40 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                       contentType: jsonContentType
                   }).done(function(data) {
                       if (data.success) { defer.resolve(); }
-                      else { defer.rejectWith(view, [data.msg]); }
+                      else { 
+                        uppy.info(gettext("Could not delete previously uploaded files.  Press upload again to try again."), 'warning', 5000);
+                        defer.rejectWith(view, [data.msg]); 
+                      }
                   }).fail(function() {
+                      uppy.info(gettext("Could not delete previously uploaded files.  Press upload again to try again."), 'warning', 5000);
                       defer.rejectWith(view, [gettext('Server error.')]);
                   });
               }).promise();
+          }          
+
+          var getSignedParams = function() {
+            var url = view.server.runtime.handlerUrl(view.element, 'get_transloadit_signed_params');
+            return $.Deferred(function(defer) {
+                  $.ajax({
+                      type: "POST",
+                      url: url,
+                      data: JSON.stringify(uppy.getPlugin('Transloadit').opts.params),
+                      contentType: jsonContentType
+                  }).done(function(data) {
+                      if (data.success) { 
+                        uppy.getPlugin('Transloadit').opts.params = data.params.params
+                        uppy.getPlugin('Transloadit').opts.signature = data.params.signature
+                        defer.resolve(); 
+                      }
+                      else { defer.rejectWith(view, [data.msg]); }
+                  }).fail(function() {
+                      defer.rejectWith(view, [gettext('Server error getting signed TransloadIt params.')]);
+                  });
+              }).promise(); 
           }
 
           //Uppy here is global and this is Window
             var uppy = Uppy.Core({
-                id: 'uppy_'+CSS.escape(usageID),
                 id: 'uppy_' + CSS.escape(usageID),
                 autoProceed: false,
                 allowMultipleUploads: false,
@@ -273,28 +294,26 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
             });
 
             uppy.use(Uppy.Transloadit, {
-              target: Uppy.Dashboard,
               params: {
                 auth: {
-                  // To avoid tampering use signatures:
-                  // https://transloadit.com/docs/api/#authentication
                   key: view.data.TRANSLOADIT_AUTH_KEY
-                },                
-                template_id: view.data.TRANSLOADIT_TEMPLATE_ID,
+                },
                 fields: {
-                    s3_prefix: view.data.FILE_UPLOAD_PREFIX,
-                    user_id: userID,
-                    course_id: courseID,
-                    usage_id: usageID
-                }
-              },
+                  s3_prefix: view.data.FILE_UPLOAD_PREFIX,
+                  user_id: userID,
+                  course_id: courseID,
+                  usage_id: usageID
+                },
+                template_id: view.data.TRANSLOADIT_TEMPLATE_ID
+              },              
               signature: null, 
               waitForEncoding: true,  // won't trigger completion until assembly fully complete,
               locale: {
                 strings: {
-                  encoding: "Antivirus software is scanning file"
+                  encoding: "Antivirus software is scanning file" // TODO: should be from XBlock settings
                 }
               }
+
             });
 
             uppy.use(Uppy.Webcam, {
@@ -303,12 +322,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 return Promise.resolve();
               },
               countdown: false,
-              modes: [
-                'video-audio',
-                'video-only',
-                'audio-only',
-                'picture'
-              ],
+              modes: ['video-audio', 'video-only', 'audio-only', 'picture'],
               mirror: true,
               facingMode: 'user',
               locale: {}
