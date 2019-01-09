@@ -160,15 +160,18 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                   // rename multiple files to have sequential numeric filenames
                   // but single file to have only the usage ID as file name
                   // this is due to how the s3 backend is designed
+                  // keep the extension for now and strip in TransloadIt assembly
+                  // so that TransloadIt sends proper content-type to s3
                   const updatedFiles = $.extend({},files);
                   const aryUpdated = $.map(updatedFiles, function(element,index) {return index});
                   var i = 0;
                   for (var k in aryUpdated) { //folder of stored items...
+                    var f = aryUpdated[k];
                     if (i==0) {
-                      updatedFiles[aryUpdated[k]].name = usageID; // stored as single item with usage id name
+                      updatedFiles[f].name = usageID + "." + updatedFiles[f].extension; // stored as single item with usage id name
                     }
                     else {
-                      updatedFiles[aryUpdated[k]].name = i; // stored as 1, 2... inside directory w/ usage id name
+                      updatedFiles[f].name = i + "." + updatedFiles[f].extension; // stored as 1, 2... inside directory w/ usage id name
                     }
                     i++;
                   };
