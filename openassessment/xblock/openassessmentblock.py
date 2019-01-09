@@ -547,6 +547,7 @@ class OpenAssessmentBlock(MessageMixin,
 
         if fileupload_backend_name == 'transloadit':
             js_context_dict['TRANSLOADIT_TEMPLATE_ID'] = self.settings.get('TRANSLOADIT_TEMPLATE_ID')
+            js_context_dict['TRANSLOADIT_AUTH_KEY'] = self.settings.get('TRANSLOADIT_AUTH_KEY')
             self.add_javascript_files(fragment, "static/js/lib/css.escape.js")  # polyfill needed for Uppy
 
         fragment.initialize_js(initialize_js_func, js_context_dict)

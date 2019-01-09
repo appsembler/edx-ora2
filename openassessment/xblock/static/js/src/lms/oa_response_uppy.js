@@ -276,7 +276,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                 auth: {
                   // To avoid tampering use signatures:
                   // https://transloadit.com/docs/api/#authentication
-                  key: '792eb390ec5111e8becf951567442607'
+                  key: view.data.TRANSLOADIT_AUTH_KEY
                 },                
                 template_id: view.data.TRANSLOADIT_TEMPLATE_ID,
                 fields: {
