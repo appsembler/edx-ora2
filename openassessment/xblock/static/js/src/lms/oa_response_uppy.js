@@ -157,14 +157,14 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
 
             removeUploadedFiles(files).then(
                 function() {
-                  // rename multiple files to have sequential numeric filenames
+                  // rename files beyond the first to have sequential numeric filenames
                   // but single file to have only the usage ID as file name
                   // this is due to how the s3 backend is designed
                   // keep the extension for now and strip in TransloadIt assembly
                   // so that TransloadIt sends proper content-type to s3
                   const updatedFiles = $.extend({},files);
                   const aryUpdated = $.map(updatedFiles, function(element,index) {return index});
-                  var i = 0;
+                  var i = 0;                  
                   for (var k in aryUpdated) { //folder of stored items...
                     var f = aryUpdated[k];
                     if (i==0) {
@@ -246,7 +246,9 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                      closeModal: 'Close Uploader',
                      dashboardWindowTitle: 'Uploader (Press escape to close)',
                      edit: 'Enter file description (required)',
-                     editFile: 'Enter file description (required)'
+                     editFile: 'Enter file description (required)',
+
+
                   }
                 }
 
@@ -286,7 +288,13 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
                     usage_id: usageID
                 }
               },
-              signature: null,
+              signature: null, 
+              waitForEncoding: true,  // won't trigger completion until assembly fully complete,
+              locale: {
+                strings: {
+                  encoding: "Processing upload..."
+                }
+              }
             });
 
             uppy.use(Uppy.Webcam, {
@@ -306,28 +314,45 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               locale: {}
             });
 
-            uppy.on('upload-success', function (file, resp, uploadURL) {
-              var index = isNaN(file.name) ? 0 : file.name; 
+// uppy.on('transloadit:upload', file => console.info("transloadit:upload", file));
+// uppy.on('transloadit:result',  (stepName, result) => console.info("transloadit:result", stepName, result));
+// uppy.on('transloadit:complete', assembly => console.info("transloadit:complete", assembly));
+// uppy.on('transloadit:assembly-error', (a, e) => console.info("assembly-error", a, e));
+// uppy.on('core:error', error => console.info("UPPY ERROR", error));
+
+            uppy.on('upload-success', function (file, url) {
+              // description isn't available in Transloadit results only Uppy file.meta
+              var basename = file.name.replace(/\.[^/.]+$/, "")
+              var index = isNaN(basename) ? 0 : basename;
               view.filesDescriptions[index] = file.meta.description;
+            });
+
+            uppy.on('transloadit:result', function (stepName, result) {
+              var index = isNaN(result.original_basename) ? 0 : result.original_basename;
               view.fileUrl(index);
 
               // Log an analytics event
               Logger.log(
                   "openassessment.upload_file",
                   {
-                      fileName: file.name,
-                      fileSize: file.size,
-                      fileType: file.type
+                      fileName: result.original_basename,
+                      fileSize: result.size,
+                      fileType: result.type
                   }
               );
             });
 
-            uppy.on('complete', function (result) {
-              var trigger = '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID);
-              $(trigger).attr('disabled', 'disabled'); //only allowing one upload
-              view.saveFilesDescriptions(view.filesDescriptions);
-              view.checkSubmissionAbility(true);
-            })
+            uppy.on('transloadit:complete', function (result) {
+              if (result.http_code == 200) {
+                var trigger = '#'+CSS.escape(BUTTON_SELECTOR_PREFIX + usageID);
+                $(trigger).attr('disabled', 'disabled'); //only allowing one upload
+                view.saveFilesDescriptions(view.filesDescriptions);
+                view.checkSubmissionAbility(true);
+              }
+              else {
+                // handle error state
+              }
+            });
 
         });
 
