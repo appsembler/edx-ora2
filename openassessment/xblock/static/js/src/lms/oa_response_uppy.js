@@ -292,7 +292,7 @@ OpenAssessment.UppyResponseView.prototype = $.extend({}, OpenAssessment.Response
               waitForEncoding: true,  // won't trigger completion until assembly fully complete,
               locale: {
                 strings: {
-                  encoding: "Processing upload..."
+                  encoding: "Antivirus software is scanning file"
                 }
               }
             });
