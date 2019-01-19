@@ -806,6 +806,9 @@ OpenAssessment.ResponseView.prototype = {
                 fileBlock = $('<div/>');
                 fileBlock.addClass('submission__answer__file__block ' + className);
                 fileBlock.appendTo(sel.find('.submission__answer__files').first());
+            } else {
+                fileBlock = sel.find("." + className);
+                fileBlock.empty();
             }
 
             if (view.filesType === 'image') {
